@@ -1,0 +1,53 @@
+url: /p/test/?_time=1
+ajax: true
+submit_value: Save
+id: frm_test
+items:
+  type_of_issue:
+    type: varchar
+    lable: Type of issue
+    default: null
+    mandatory: true
+    option:
+      '': ''
+      1: Applikation
+      2: Database
+    container_classzzz: row
+  email:
+    type: varchar
+    lable: Email
+    default: null
+    mandatory: true
+    validator:
+      -
+        plugin: wf/form
+        method: validate_email
+  name:
+    type: varchar
+    lable: Name
+    default: John
+  important_level:
+    type: varchar
+    lable: Level of important (1-10)
+    mandatory: true
+    validator:
+      -
+        plugin: wf/form
+        method: validate_numeric
+        data:
+          min: 1
+          max: 10
+  description:
+    type: text
+    lable: Description
+    default: null
+    mandatory: true
+  send_copy_of_this:
+    type: checkbox
+    lable: Send copy of this
+capture:
+  plugin: wf/form
+  method: test_capture
+  
+
+

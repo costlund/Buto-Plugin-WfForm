@@ -1,12 +1,10 @@
 <?php
 
 class PluginWfForm{
-  
   /**
-   * MethodType: widget
-   * MethodDescription: Render a form.
-   * @param type $data
-   * @throws Exception
+   * <p>Render a form.</p> 
+   * <p>Consider to add data in separate xml file because you need to pic it up again when handle posting values. Use widget to handle post request if necessary.</p> 
+   * <p>'yml:/theme/[theme]/form/my_form.yml'</p>
    */
   public static function widget_render($data){
     if(wfArray::isKey($data, 'data')){
@@ -163,6 +161,32 @@ class PluginWfForm{
   }
   
   /**
+   * Capture post from form via ajax.
+   * @param type $data
+   */
+  public static function widget_capture($data){
+    wfPlugin::includeonce('wf/array');
+    $form = new PluginWfArray($data['data']);
+    $form->set(null, PluginWfForm::bindAndValidate($form->get()));
+    $json = new PluginWfArray();
+    $json->set('success', false);
+    if($form->get('is_valid')){
+      
+      if($form->get('capture/plugin') && $form->get('capture/method')){
+        //PluginWfForm::runCaptureMethod($form->get('capture/plugin'), $form->get('capture/method'), $form);
+        $json->set('script', PluginWfForm::runCaptureMethod($form->get('capture/plugin'), $form->get('capture/method'), $form));
+      }else{
+        $json->set('script', array("alert(\"Param capture is missing in form data!\");"));
+      }
+      
+    }else{
+      $json->set('script', array("alert(\"".PluginWfForm::getErrors($form->get(), "\\n")."\");"));
+    }
+    exit(json_encode($json->get()));
+  }
+  
+  
+  /**
    * Bind request params to form.
    * @param type $form
    * @return boolean
@@ -245,7 +269,6 @@ class PluginWfForm{
     foreach ($form['items'] as $key => $value) {
       if(wfArray::get($value, 'validator')){
         foreach (wfArray::get($value, 'validator') as $key2 => $value2) {
-          //echo $key2;
           wfPlugin::includeonce($value2['plugin']);
           $obj = wfSettings::getPluginObj($value2['plugin']);
           $method = $value2['method'];
@@ -498,6 +521,15 @@ class PluginWfForm{
     return false;
   }
   
+  public static function runCaptureMethod($plugin, $method, $form){
+    wfPlugin::includeonce($plugin);
+    $obj = wfSettings::getPluginObj($plugin);
+    return $obj->$method($form);
+  }
+  
+  public function test_capture(){
+    return array("alert('PluginWfForm method test_capture was tested! Replace to another to proceed your work.')");
+  }
   
 }
 

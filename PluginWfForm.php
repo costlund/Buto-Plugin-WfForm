@@ -166,21 +166,20 @@ class PluginWfForm{
    */
   public static function widget_capture($data){
     wfPlugin::includeonce('wf/array');
-    $form = new PluginWfArray($data['data']);
-    $form->set(null, PluginWfForm::bindAndValidate($form->get()));
-    $json = new PluginWfArray();
-    $json->set('success', false);
-    if($form->get('is_valid')){
-      
-      if($form->get('capture/plugin') && $form->get('capture/method')){
-        //PluginWfForm::runCaptureMethod($form->get('capture/plugin'), $form->get('capture/method'), $form);
-        $json->set('script', PluginWfForm::runCaptureMethod($form->get('capture/plugin'), $form->get('capture/method'), $form));
+    if(wfRequest::isPost()){
+      $form = new PluginWfArray($data['data']);
+      $form->set(null, PluginWfForm::bindAndValidate($form->get()));
+      $json = new PluginWfArray();
+      $json->set('success', false);
+      if($form->get('is_valid')){
+        if($form->get('capture/plugin') && $form->get('capture/method')){
+          $json->set('script', PluginWfForm::runCaptureMethod($form->get('capture/plugin'), $form->get('capture/method'), $form));
+        }else{
+          $json->set('script', array("alert(\"Param capture is missing in form data!\");"));
+        }
       }else{
-        $json->set('script', array("alert(\"Param capture is missing in form data!\");"));
+        $json->set('script', array("alert(\"".PluginWfForm::getErrors($form->get(), "\\n")."\");"));
       }
-      
-    }else{
-      $json->set('script', array("alert(\"".PluginWfForm::getErrors($form->get(), "\\n")."\");"));
     }
     exit(json_encode($json->get()));
   }

@@ -166,10 +166,10 @@ class PluginWfForm{
    */
   public static function widget_capture($data){
     wfPlugin::includeonce('wf/array');
+    $json = new PluginWfArray();
     if(wfRequest::isPost()){
       $form = new PluginWfArray($data['data']);
       $form->set(null, PluginWfForm::bindAndValidate($form->get()));
-      $json = new PluginWfArray();
       $json->set('success', false);
       if($form->get('is_valid')){
         if($form->get('capture/plugin') && $form->get('capture/method')){

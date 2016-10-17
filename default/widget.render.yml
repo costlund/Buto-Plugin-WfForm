@@ -46,8 +46,12 @@ items:
     type: checkbox
     lable: Send copy of this
 capture:
+  _buto: Set capture params for using the Capture widget.
   plugin: wf/form
   method: test_capture
-  
+#New call when load form (todo)?
+#render:  
+#  plugin: wf/form
+#  method: test_render
 
 

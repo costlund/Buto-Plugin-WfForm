@@ -129,6 +129,24 @@ class PluginWfForm{
             //$temp['div'] = wfDocument::createHtmlElement('div', array(wfDocument::createHtmlElement('label', $default_value['lable'], array('for' => $default_value['element_id']))), array('class' => ''));
             $temp['lable'] = wfDocument::createHtmlElement('label', $default_value['lable'], array('for' => $default_value['element_id']));
           }
+          
+          /**
+           * Add Bootstrap glyphicon.
+           */
+          if(wfArray::get($value, 'info/text')){
+            $temp['glyphicon_info'] = wfDocument::createHtmlElement('span', null, array(
+                'title' => $default_value['lable'], 
+                'class' => 'glyphicon glyphicon-info-sign', 
+                'style' => 'float:right;',
+                'data-toggle' => 'popover',
+                'data-placement' => 'right',
+                'data-content' => wfArray::get($value, 'info/text')
+                ));
+            $temp['script'] = wfDocument::createHtmlElement('script', " $(function () {  $('[data-toggle=\"popover\"]').popover()}) ");
+            //$temp['script'] = wfDocument::createHtmlElement('script', "alert('8sdf\"');");            
+          }
+          
+          
           $temp['input'] = wfDocument::createHtmlElement($type, $innerHTML, $attribute);
           $form_element[] = wfDocument::createHtmlElement('div', $temp, array(
                   'id' => 'div_'.$default['id'].'_'.$key, 
@@ -167,10 +185,12 @@ class PluginWfForm{
   public static function widget_capture($data){
     wfPlugin::includeonce('wf/array');
     $json = new PluginWfArray();
-    if(wfRequest::isPost()){
+    //if(wfRequest::isPost()){
+    if(true){
       $form = new PluginWfArray($data['data']);
       $form->set(null, PluginWfForm::bindAndValidate($form->get()));
       $json->set('success', false);
+      $json->set('uid', wfCrypt::getUid());
       if($form->get('is_valid')){
         if($form->get('capture/plugin') && $form->get('capture/method')){
           $json->set('script', PluginWfForm::runCaptureMethod($form->get('capture/plugin'), $form->get('capture/method'), $form));

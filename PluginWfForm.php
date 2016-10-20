@@ -19,6 +19,20 @@ class PluginWfForm{
     }
     
     
+    
+    /**
+     * Call a render method.
+     */
+    wfPlugin::includeonce('wf/array');
+    $form = new PluginWfArray($data['data']);
+    if($form->get('render/plugin') && $form->get('render/method')){
+      $form = (PluginWfForm::runCaptureMethod($form->get('render/plugin'), $form->get('render/method'), $form));
+      $data['data'] = $form->get();
+    }
+    
+    
+    
+    
     $default = array(
         'submit_value' => 'Send',
         'submit_class' => 'btn btn-primary',
@@ -188,6 +202,18 @@ class PluginWfForm{
     //if(wfRequest::isPost()){
     if(true){
       $form = new PluginWfArray($data['data']);
+      
+      
+      /**
+       * Call a before validation method.
+       */
+      wfPlugin::includeonce('wf/array');
+      $form = new PluginWfArray($data['data']);
+      if($form->get('validation_before/plugin') && $form->get('validation_before/method')){
+        $form = (PluginWfForm::runCaptureMethod($form->get('validation_before/plugin'), $form->get('validation_before/method'), $form));
+      }
+      
+      
       $form->set(null, PluginWfForm::bindAndValidate($form->get()));
       $json->set('success', false);
       $json->set('uid', wfCrypt::getUid());

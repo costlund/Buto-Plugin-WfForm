@@ -45,13 +45,18 @@ items:
   send_copy_of_this:
     type: checkbox
     lable: Send copy of this
+# Call a method when capture the form to save data.
 capture:
   _buto: Set capture params for using the Capture widget.
   plugin: wf/form
   method: test_capture
-#New call when load form (todo)?
-#render:  
-#  plugin: wf/form
-#  method: test_render
+# Call a method when render form to fill it with data.
+render:  
+  plugin: wf/form
+  method: test_render
+# Call a method before validation. For example remove item or change mandatory values.
+validation_before:
+  plugin: wf/form
+  method: test_validation_before
 
 

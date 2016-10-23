@@ -375,10 +375,7 @@ class PluginWfForm{
   }
   
   public function validate_email($field, $form, $data = array()){
-    
-    //wfHelp::yml_dump($data);
-    
-    if(wfArray::get($form, "items/$field/is_valid")){
+    if(wfArray::get($form, "items/$field/is_valid") && wfArray::get($form, "items/$field/post_value")){
       if (!filter_var(wfArray::get($form, "items/$field/post_value"), FILTER_VALIDATE_EMAIL)) {
         $form = wfArray::set($form, "items/$field/is_valid", false);
         $form = wfArray::set($form, "items/$field/errors/", __('?lable is not validated as email!', array('?lable' => wfArray::get($form, "items/$field/lable"))));

@@ -30,8 +30,10 @@ class PluginWfForm{
       $data['data'] = $form->get();
     }
     
-    
-    
+    /**
+     * Script to add calendar to type date.
+     */
+    $scripts = array();
     
     $default = array(
         'submit_value' => 'Send',
@@ -103,18 +105,20 @@ class PluginWfForm{
           $attribute['value'] = $default_value['default'];
           break;
         case 'varchar':
+        case 'date':
+          if($default_value['type']=='date'){
+            $scripts[] = wfDocument::createHtmlElement('script', "if($('#".$default['id']."_$key').datepicker){this.datepicker = $('#".$default['id']."_$key').datepicker({ format: 'yyyy-mm-dd', weekStart: 1, daysOfWeekHighlighted: '0,6', autoclose: true, todayHighlight: true  });}");
+          }
           if(!$default_value['option']){
             $type = 'input';
             $attribute['type'] = 'text';
             $attribute['value'] = $default_value['default'];
           }else{
-
             $type = 'select';
             $option = array();
             foreach ($default_value['option'] as $key2 => $value2) {
               $temp = array();
               $temp['value'] = $key2;
-              //if($default_value['default']==$key2){
               if((string)$default_value['default']===(string)$key2){
                 $temp['selected'] = 'true';
               }
@@ -153,7 +157,8 @@ class PluginWfForm{
                 'class' => 'glyphicon glyphicon-info-sign', 
                 'style' => 'float:right;',
                 'data-toggle' => 'popover',
-                'data-placement' => 'right',
+                'data-triggerzzz' => 'focus',
+                'data-placement' => 'left',
                 'data-content' => wfArray::get($value, 'info/text')
                 ));
             $temp['script'] = wfDocument::createHtmlElement('script', " $(function () {  $('[data-toggle=\"popover\"]').popover()}) ");
@@ -179,17 +184,10 @@ class PluginWfForm{
       $form_attribute['action'] = $default['url'];
     }
     $form = wfDocument::createHtmlElement('form', $form_element, $form_attribute);
-    
-    
-    //$script = wfDocument::createHtmlElement('script', "console.log(document.getElementById('".$default['id']."').parentNode.className);");
-    
     // Check if form is render in Bootstrap Modal. If so we move save button to modal footer.
-    $script = wfDocument::createHtmlElement('script', "if(document.getElementById('".$default['id']."').parentNode.className=='modal-body'){document.getElementById(document.getElementById('".$default['id']."').parentNode.id.replace('_body', '_footer')).appendChild(document.getElementById('".$default['id']."_save'));}");
-    
-    //wfHelp::yml_dump($form);
-    
-    wfDocument::renderElement(array($form, $script));
-    
+    $script_move_btn = wfDocument::createHtmlElement('script', "if(document.getElementById('".$default['id']."').parentNode.className=='modal-body'){document.getElementById(document.getElementById('".$default['id']."').parentNode.id.replace('_body', '_footer')).appendChild(document.getElementById('".$default['id']."_save'));}");
+    wfDocument::renderElement(array($form, $script_move_btn));
+    wfDocument::renderElement($scripts);
   }
   
   /**
@@ -483,7 +481,6 @@ class PluginWfForm{
   public static function isDate($value){
     if(strtotime($value)){
       $format_datetime = 'Y-m-d H:i:s';
-      $format_date = 'Y-m-d';
       $format_date = wfDate::format();
       $d = DateTime::createFromFormat($format_datetime, $value);
       if($d && $d->format($format_datetime) == $value){

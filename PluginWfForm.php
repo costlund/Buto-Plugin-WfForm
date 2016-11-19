@@ -27,8 +27,14 @@ class PluginWfForm{
    * <p>'yml:/theme/[theme]/form/my_form.yml'</p>
    */
   public static function widget_render($data){
+    /**
+     * Handle data param.
+     */
     if(wfArray::isKey($data, 'data')){
       if(!is_array(wfArray::get($data, 'data'))){
+        /**
+         * If not an array it must be path to file.
+         */
         $filename = wfArray::get($GLOBALS, 'sys/app_dir').wfArray::get($data, 'data');
         if(file_exists($filename)){
           $data['data'] = sfYaml::load($filename);
@@ -36,37 +42,42 @@ class PluginWfForm{
           throw new Exception("Could not find file $filename.");
         }
       }
+    }else{
+      throw new Exception("Param data is not set.");
     }
     /**
-     * Call a render method.
+     * Create form and include dependencies.
      */
-    wfPlugin::includeonce('wf/array');
     $form = new PluginWfArray($data['data']);
     $form = PluginWfForm::handleTypo($form);
+    wfPlugin::includeonce('wf/array');
+    $scripts = array();
+    /**
+     * Call a render method if exist to fill the form.
+     */
     if($form->get('render/plugin') && $form->get('render/method')){
       $form = (PluginWfForm::runCaptureMethod($form->get('render/plugin'), $form->get('render/method'), $form));
       $data['data'] = $form->get();
     }
     /**
-     * Script to add calendar to type date.
+     * Default values.
      */
-    $scripts = array();
     $default = array(
         'submit_value' => 'Send',
         'submit_class' => 'btn btn-primary',
         'id' => str_replace('.', '', uniqid(mt_rand(), true)),
         'script' => null,
-        'post_to_divzzz' => '',
         'ajax' => false,
-        'url' => '/doc/form_url_is_not_set',
+        'url' => '/doc/_',
         'items' => array()
         );
+    /**
+     * Merge defaults with widget data.
+     */
     $default = array_merge($default, $data['data']);
     $default['url'] = wfSettings::replaceClass($default['url']);
     $buttons = array();
-    if($default['post_to_divzzz']){
-      $buttons[] = wfDocument::createHtmlElement('a', $default['submit_value'], array('class' => 'a_button', 'onclick' => "wfPostForm(wfElement('".$default['id']."'), '".$default['url']."', '".$default['post_to_div']."');return false;"));
-    }  elseif($default['ajax']) {
+    if($default['ajax']) {
       $onclick = "$.post('".$default['url']."', $('#".$default['id']."').serialize()).done(function(data) { PluginWfCallbackjson.call( data ); });return false;";
       $buttons[] = wfDocument::createHtmlElement('input', null, array('type' => 'submit', 'value' => $default['submit_value'], 'class' => $default['submit_class'], 'onclick' => $onclick, 'id' => $default['id'].'_save'));
     }  else {

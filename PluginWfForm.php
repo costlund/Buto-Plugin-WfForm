@@ -1,6 +1,26 @@
 <?php
-
+/**
+ * Plugin to render and handle forms.
+ */
 class PluginWfForm{
+  public static function handleTypo($form){
+    if(gettype($form) == 'object'){
+      foreach ($form->get('items') as $key => $value) {
+        if(isset($value['lable']) && !isset($value['label'])){
+          $form->set("items/$key/label", $value['lable']);
+          $form->setUnset("items/$key/lable");
+        }
+      }
+    }else{
+      foreach ($form['items'] as $key => $value) {
+        if(isset($value['lable']) && !isset($value['label'])){
+          $form['items'][$key]['label'] = $value['lable'];
+          unset($form['items'][$key]['lable']);
+        }
+      }
+    }
+    return $form;
+  }
   /**
    * <p>Render a form.</p> 
    * <p>Consider to add data in separate xml file because you need to pic it up again when handle posting values. Use widget to handle post request if necessary.</p> 
@@ -17,24 +37,20 @@ class PluginWfForm{
         }
       }
     }
-    
-    
-    
     /**
      * Call a render method.
      */
     wfPlugin::includeonce('wf/array');
     $form = new PluginWfArray($data['data']);
+    $form = PluginWfForm::handleTypo($form);
     if($form->get('render/plugin') && $form->get('render/method')){
       $form = (PluginWfForm::runCaptureMethod($form->get('render/plugin'), $form->get('render/method'), $form));
       $data['data'] = $form->get();
     }
-    
     /**
      * Script to add calendar to type date.
      */
     $scripts = array();
-    
     $default = array(
         'submit_value' => 'Send',
         'submit_class' => 'btn btn-primary',
@@ -47,14 +63,11 @@ class PluginWfForm{
         );
     $default = array_merge($default, $data['data']);
     $default['url'] = wfSettings::replaceClass($default['url']);
-    
     $buttons = array();
     if($default['post_to_divzzz']){
       $buttons[] = wfDocument::createHtmlElement('a', $default['submit_value'], array('class' => 'a_button', 'onclick' => "wfPostForm(wfElement('".$default['id']."'), '".$default['url']."', '".$default['post_to_div']."');return false;"));
     }  elseif($default['ajax']) {
-      
       $onclick = "$.post('".$default['url']."', $('#".$default['id']."').serialize()).done(function(data) { PluginWfCallbackjson.call( data ); });return false;";
-      
       $buttons[] = wfDocument::createHtmlElement('input', null, array('type' => 'submit', 'value' => $default['submit_value'], 'class' => $default['submit_class'], 'onclick' => $onclick, 'id' => $default['id'].'_save'));
     }  else {
       $buttons[] = wfDocument::createHtmlElement('input', null, array('type' => 'submit', 'value' => $default['submit_value'], 'class' => $default['submit_class']));
@@ -64,11 +77,10 @@ class PluginWfForm{
         $buttons[] = wfDocument::createHtmlElement($value['type'], $value['innerHTML'], $value['attribute']);
       }
     }
-    
     $form_element = array();
     foreach ($default['items'] as $key => $value) {
       $default_value = array(
-          'lable' => $key,
+          'label' => $key,
           'default' => '',
           'element_id' => $default['id'].'_'.$key,
           'name' => $key,
@@ -82,7 +94,7 @@ class PluginWfForm{
           'style' => null
               );
       $default_value = array_merge($default_value, $value);
-      if($default_value['mandatory']){$default_value['lable'] .= '*';}
+      if($default_value['mandatory']){$default_value['label'] .= '*';}
       $type = null;
       $innerHTML = null;
       $attribute = array('name' => $default_value['name'], 'id' => $default_value['element_id'], 'class' => $default_value['class'], 'style' => $default_value['style']);
@@ -144,16 +156,14 @@ class PluginWfForm{
         }else{
           $temp = array();
           if(wfArray::get($attribute, 'type') != 'hidden'){
-            //$temp['div'] = wfDocument::createHtmlElement('div', array(wfDocument::createHtmlElement('label', $default_value['lable'], array('for' => $default_value['element_id']))), array('class' => ''));
-            $temp['lable'] = wfDocument::createHtmlElement('label', $default_value['lable'], array('for' => $default_value['element_id']));
+            $temp['label'] = wfDocument::createHtmlElement('label', $default_value['label'], array('for' => $default_value['element_id']));
           }
-          
           /**
            * Add Bootstrap glyphicon.
            */
           if(wfArray::get($value, 'info/text')){
             $temp['glyphicon_info'] = wfDocument::createHtmlElement('span', null, array(
-                'title' => $default_value['lable'], 
+                'title' => $default_value['label'], 
                 'class' => 'glyphicon glyphicon-info-sign', 
                 'style' => 'float:right;',
                 'data-toggle' => 'popover',
@@ -164,8 +174,6 @@ class PluginWfForm{
             $temp['script'] = wfDocument::createHtmlElement('script', " $(function () {  $('[data-toggle=\"popover\"]').popover()}) ");
             //$temp['script'] = wfDocument::createHtmlElement('script', "alert('8sdf\"');");            
           }
-          
-          
           $temp['input'] = wfDocument::createHtmlElement($type, $innerHTML, $attribute);
           $form_element[] = wfDocument::createHtmlElement('div', $temp, array(
                   'id' => 'div_'.$default['id'].'_'.$key, 
@@ -177,9 +185,6 @@ class PluginWfForm{
     }
     $form_element[] = wfDocument::createHtmlElement('div', $buttons, array('class' => 'wf_form_row'));
     $form_attribute = array('id' => $default['id'], 'method' => 'post', 'role' => 'form');
-    if(!$default['post_to_divzzz']){
-      //$form_attribute['action'] = $default['url'];
-    }
     if(!$default['ajax']){
       $form_attribute['action'] = $default['url'];
     }
@@ -189,7 +194,6 @@ class PluginWfForm{
     wfDocument::renderElement(array($form, $script_move_btn));
     wfDocument::renderElement($scripts);
   }
-  
   /**
    * Capture post from form via ajax.
    * @param type $data
@@ -197,38 +201,30 @@ class PluginWfForm{
   public static function widget_capture($data){
     wfPlugin::includeonce('wf/array');
     $json = new PluginWfArray();
-    //if(wfRequest::isPost()){
-    if(true){
-      $form = new PluginWfArray($data['data']);
-      
-      
-      /**
-       * Call a before validation method.
-       */
-      wfPlugin::includeonce('wf/array');
-      $form = new PluginWfArray($data['data']);
-      if($form->get('validation_before/plugin') && $form->get('validation_before/method')){
-        $form = (PluginWfForm::runCaptureMethod($form->get('validation_before/plugin'), $form->get('validation_before/method'), $form));
-      }
-      
-      
-      $form->set(null, PluginWfForm::bindAndValidate($form->get()));
-      $json->set('success', false);
-      $json->set('uid', wfCrypt::getUid());
-      if($form->get('is_valid')){
-        if($form->get('capture/plugin') && $form->get('capture/method')){
-          $json->set('script', PluginWfForm::runCaptureMethod($form->get('capture/plugin'), $form->get('capture/method'), $form));
-        }else{
-          $json->set('script', array("alert(\"Param capture is missing in form data!\");"));
-        }
+    $form = new PluginWfArray($data['data']);
+    $form = PluginWfForm::handleTypo($form);
+    /**
+     * Call a before validation method.
+     */
+    wfPlugin::includeonce('wf/array');
+    $form = new PluginWfArray($data['data']);
+    if($form->get('validation_before/plugin') && $form->get('validation_before/method')){
+      $form = (PluginWfForm::runCaptureMethod($form->get('validation_before/plugin'), $form->get('validation_before/method'), $form));
+    }
+    $form->set(null, PluginWfForm::bindAndValidate($form->get()));
+    $json->set('success', false);
+    $json->set('uid', wfCrypt::getUid());
+    if($form->get('is_valid')){
+      if($form->get('capture/plugin') && $form->get('capture/method')){
+        $json->set('script', PluginWfForm::runCaptureMethod($form->get('capture/plugin'), $form->get('capture/method'), $form));
       }else{
-        $json->set('script', array("alert(\"".PluginWfForm::getErrors($form->get(), "\\n")."\");"));
+        $json->set('script', array("alert(\"Param capture is missing in form data!\");"));
       }
+    }else{
+      $json->set('script', array("alert(\"".PluginWfForm::getErrors($form->get(), "\\n")."\");"));
     }
     exit(json_encode($json->get()));
   }
-  
-  
   /**
    * Bind request params to form.
    * @param type $form
@@ -247,7 +243,6 @@ class PluginWfForm{
     }
     return $form;
   }
-  
   /**
    * Bind array where keys matching keys in form.
    */
@@ -259,8 +254,6 @@ class PluginWfForm{
     }
     return $form;
   }
-  
-  
   /**
    * Validate form.
    * @param type $form
@@ -274,40 +267,33 @@ class PluginWfForm{
                 $form['items'][$key]['is_valid'] = true;
             }else{
                 $form['items'][$key]['is_valid'] = false;
-                $form['items'][$key]['errors'][] = __('?lable is empty.', array('?lable' => $form['items'][$key]['lable']));
+                $form['items'][$key]['errors'][] = __('?label is empty.', array('?label' => $form['items'][$key]['label']));
             }
         }else{
             $form['items'][$key]['is_valid'] = true;
         }
     }
-    
     //Validate email.
     foreach ($form['items'] as $key => $value) {
         if($value['is_valid']){
             if(isset($value['validate_as_email']) && $value['validate_as_email']){
                 if (!filter_var($value['post_value'], FILTER_VALIDATE_EMAIL)) {
                     // invalid emailaddress
-                    //$form['items'][$key]['is_valid_text'] = 'Epost är felaktig!';
-                    //$form['items'][$key]['errors'][] = __($form['items'][$key]['lable'].' is not correct as email.');
-                    $form['items'][$key]['errors'][] = __('?lable is not an email.', array('?lable' => $form['items'][$key]['lable']));
+                    $form['items'][$key]['errors'][] = __('?label is not an email.', array('?label' => $form['items'][$key]['label']));
                     $form['items'][$key]['is_valid'] = false;
                 }                
             }
         }
     }
-
     //Validate php code injection.
     foreach ($form['items'] as $key => $value) {
       if($value['is_valid']){
         if (strstr($value['post_value'], '<?php') || strstr($value['post_value'], '?>')) {
-            $form['items'][$key]['errors'][] = __('?lable has illegal character.', array('?lable' => $form['items'][$key]['lable']));
+            $form['items'][$key]['errors'][] = __('?label has illegal character.', array('?label' => $form['items'][$key]['label']));
             $form['items'][$key]['is_valid'] = false;
         }                
       }
     }
-    
-    
-    
     // Validator
     foreach ($form['items'] as $key => $value) {
       if(wfArray::get($value, 'validator')){
@@ -323,9 +309,6 @@ class PluginWfForm{
         }
       }
     }
-    
-    
-    
     //Set form is_valid.
     $form['is_valid'] = true;
     foreach ($form['items'] as $key => $value) {
@@ -335,26 +318,38 @@ class PluginWfForm{
             break;
         }
     }
-    
     return $form;
   }
-  
+  /**
+   * Bind and validate form.
+   * @param type $form
+   * @return type
+   */      
   public static function bindAndValidate($form){
-//      $form = wfForm::bind($form);
-//      $form = wfForm::validate($form);
-      $form = self::bind($form);
-      $form = self::validate($form);
+    $form = PluginWfForm::handleTypo($form);
+    $form = self::bind($form);
+    $form = self::validate($form);
     return $form;
   }
-  
-  
+  /**
+   * Set error for a field.
+   * @param type $form
+   * @param type $field
+   * @param type $message
+   * @return type
+   */
   public static function setErrorField($form, $field, $message){
     $form['is_valid'] = false;
     $form['items'][$field]['is_valid'] = false;
     $form['items'][$field]['errors'][] = $message;
     return $form;
   }
-  
+  /**
+   * Set error.
+   * @param type $form
+   * @param type $nl
+   * @return string
+   */
   public static function getErrors($form, $nl = '<br>'){
     $errors = null;
     if(isset($form['errors'])){
@@ -371,28 +366,45 @@ class PluginWfForm{
     }
     return $errors;
   }
-  
+  /**
+   * Validate email.
+   * @param type $field
+   * @param type $form
+   * @param type $data
+   * @return type
+   */
   public function validate_email($field, $form, $data = array()){
     if(wfArray::get($form, "items/$field/is_valid") && wfArray::get($form, "items/$field/post_value")){
       if (!filter_var(wfArray::get($form, "items/$field/post_value"), FILTER_VALIDATE_EMAIL)) {
         $form = wfArray::set($form, "items/$field/is_valid", false);
-        $form = wfArray::set($form, "items/$field/errors/", __('?lable is not validated as email!', array('?lable' => wfArray::get($form, "items/$field/lable"))));
+        $form = wfArray::set($form, "items/$field/errors/", __('?label is not validated as email!', array('?label' => wfArray::get($form, "items/$field/label"))));
       }
     }
     return $form;
   }
-  
+  /**
+   * Validate password.
+   * @param type $field
+   * @param type $form
+   * @param type $data
+   * @return type
+   */
   public function validate_password($field, $form, $data = array()){
     if(wfArray::get($form, "items/$field/is_valid")){
       $validate = $this->validatePasswordAbcdef09(wfArray::get($form, "items/$field/post_value"));
       if (!wfArray::get($validate, 'success')) {
         $form = wfArray::set($form, "items/$field/is_valid", false);
-        $form = wfArray::set($form, "items/$field/errors/", __('?lable must have at lest one uppercase, lowercase, number and a minimum length of 8!', array('?lable' => wfArray::get($form, "items/$field/lable"))));
+        $form = wfArray::set($form, "items/$field/errors/", __('?label must have at lest one uppercase, lowercase, number and a minimum length of 8!', array('?label' => wfArray::get($form, "items/$field/label"))));
       }
     }
     return $form;
   }
-  
+  /**
+   * Validate password.
+   * @param type $password
+   * @param type $settings
+   * @return boolean
+   */
   private function validatePasswordAbcdef09($password, $settings = array()) {
     // '$\S*(?=\S{8,})(?=\S*[a-z])(?=\S*[A-Z])(?=\S*[\d])(?=\S*[\W])\S*$';
     $data = array(
@@ -457,27 +469,43 @@ class PluginWfForm{
     }
     return $data;
   }
+  /**
+   * Validate equal.
+   * @param type $field
+   * @param type $form
+   * @param type $data
+   * @return type
+   */
   public function validate_equal($field, $form, $data = array('value' => 'some value')){
     if(wfArray::get($form, "items/$field/is_valid")){
       if (wfArray::get($form, "items/$field/post_value") != wfArray::get($data, 'value')) {
         $form = wfArray::set($form, "items/$field/is_valid", false);
-        $form = wfArray::set($form, "items/$field/errors/", __('?lable is not equal to expected value!', array('?lable' => wfArray::get($form, "items/$field/lable"))));
+        $form = wfArray::set($form, "items/$field/errors/", __('?label is not equal to expected value!', array('?label' => wfArray::get($form, "items/$field/label"))));
       }
     }
     return $form;
   }
-
-
+  /**
+   * Validate date.
+   * @param type $field
+   * @param type $form
+   * @param type $data
+   * @return type
+   */
   public function validate_date($field, $form, $data = array()){
     if(wfArray::get($form, "items/$field/is_valid")){
       if (!PluginWfForm::isDate(wfArray::get($form, "items/$field/post_value"))){
         $form = wfArray::set($form, "items/$field/is_valid", false);
-        $form = wfArray::set($form, "items/$field/errors/", __('?lable is not a date!', array('?lable' => wfArray::get($form, "items/$field/lable"))));
+        $form = wfArray::set($form, "items/$field/errors/", __('?label is not a date!', array('?label' => wfArray::get($form, "items/$field/label"))));
       }
     }
     return $form;
   }
-  
+  /**
+   * Check if value is a date.
+   * @param type $value
+   * @return boolean
+   */
   public static function isDate($value){
     if(strtotime($value)){
       $format_datetime = 'Y-m-d H:i:s';
@@ -497,79 +525,75 @@ class PluginWfForm{
       return false;
     }
   }
-
-  
+  /**
+   * Validate numeric.
+   * @param type $field
+   * @param type $form
+   * @param PluginWfArray $data
+   * @return type
+   */
   public function validate_numeric($field, $form, $data = array()){
     wfPlugin::includeonce('wf/array');
-//    var_dump(wfArray::get($form, "items/$field/post_value"));
-//    exit;
-    
-    //wfHelp::yml_dump($form);
-    
     $default = array('min' => 0, 'max' => 999999);
     $data = new PluginWfArray(array_merge($default, $data));
-    
-    //wfHelp::yml_dump($data->get(), true);
-    
     if(wfArray::get($form, "items/$field/is_valid") && strlen(wfArray::get($form, "items/$field/post_value"))){
       if (!is_numeric(wfArray::get($form, "items/$field/post_value"))) {
         $form = wfArray::set($form, "items/$field/is_valid", false);
-        $form = wfArray::set($form, "items/$field/errors/", __('?lable is not numeric!', array('?lable' => wfArray::get($form, "items/$field/lable"))));
+        $form = wfArray::set($form, "items/$field/errors/", __('?label is not numeric!', array('?label' => wfArray::get($form, "items/$field/label"))));
       }else{
         if(
                 (int)wfArray::get($form, "items/$field/post_value") < (int)$data->get('min') || 
                 (int)wfArray::get($form, "items/$field/post_value") > (int)$data->get('max')
                 ){
         $form = wfArray::set($form, "items/$field/is_valid", false);
-        $form = wfArray::set($form, "items/$field/errors/", __('?lable must be between ?min and ?max!', array(
-          '?lable' => wfArray::get($form, "items/$field/lable"),
+        $form = wfArray::set($form, "items/$field/errors/", __('?label must be between ?min and ?max!', array(
+          '?label' => wfArray::get($form, "items/$field/label"),
           '?min' => $data->get('min'),
           '?max' => $data->get('max')
           )));
         }
       }
     }
-    
     return $form;
   }
-  
+  /**
+   * Save form to yml file.
+   * @param PluginWfArray $form
+   * @return boolean
+   */
   public static function saveToYml($form){
     wfPlugin::includeonce('wf/array');
     wfPlugin::includeonce('wf/yml');
-    
     $form = new PluginWfArray($form);
-    
-    //wfHelp::yml_dump($form->get(), true);
-    
     if($form->get('yml/file') && $form->get('yml/path_to_key') && $form->get('items')){
-      
       $yml = new PluginWfYml($form->get('yml/file'), $form->get('yml/path_to_key'));
-      //wfHelp::yml_dump($yml->get());
       foreach ($form->get('items') as $key => $value) {
         $yml->set($key, wfArray::get($value, 'post_value'));
       }
       $yml->save();
-      //wfHelp::yml_dump($yml->get());
-      
       return true;
     }else{
       return false;
     }
-    
-    
     return false;
   }
-  
+  /**
+   * Capture method.
+   * @param type $plugin
+   * @param type $method
+   * @param type $form
+   * @return type
+   */
   public static function runCaptureMethod($plugin, $method, $form){
     wfPlugin::includeonce($plugin);
     $obj = wfSettings::getPluginObj($plugin);
     return $obj->$method($form);
   }
-  
+  /**
+   * Method to test capture.
+   * @return type
+   */
   public function test_capture(){
     return array("alert('PluginWfForm method test_capture was tested! Replace to another to proceed your work.')");
   }
-  
 }
-
-

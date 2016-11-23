@@ -48,9 +48,9 @@ class PluginWfForm{
     /**
      * Create form and include dependencies.
      */
+    wfPlugin::includeonce('wf/array');
     $form = new PluginWfArray($data['data']);
     $form = PluginWfForm::handleTypo($form);
-    wfPlugin::includeonce('wf/array');
     $scripts = array();
     /**
      * Call a render method if exist to fill the form.
